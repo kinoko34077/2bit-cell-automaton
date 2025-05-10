@@ -1,54 +1,77 @@
-// automaton_dynamic_grid.js
+// automaton_dynamic_grid_v2.js
 // p5.js + Node.js 互換用 (VSCode Live Server対応)
 
 let grid;
 let nextGrid;
-const cols = 128;
-const rows = 64;
-const cellSize = 8;
-const spontaneousRate = 0.002; // 00->01の自然発現確率
+let fireTimers;
+const cols = 192;
+const rows = 128;
+const cellSize = 5;
+const spontaneousRate = 0.0001;
+let generation = 0;
+let isRunning = true;
+let speed = 0.2;
+const FIRE_LIFESPAN = 75;
+let showAlpha = false; // 発火体の透明度表示切り替え
 
-// 4状態: 0=空白, 1=受容体, 2=拡張体, 3=発火体
-let ruleset = Array(64).fill(0);
-
-function setupRuleset() {
-  for (let a = 0; a < 4; a++) {
-    for (let b = 0; b < 4; b++) {
-      for (let c = 0; c < 4; c++) {
-        let i = a * 16 + b * 4 + c;
-        if (b === 3) {
-          ruleset[i] = 0; // 発火体は必ず次で崩壊
-        } else if (b === 2) {
-          ruleset[i] = (a === 3 || c === 3) ? 3 : 2; // 拡張体→発火 or 維持
-        } else if (b === 1) {
-          ruleset[i] = (a === 3 || c === 3) ? 2 : 1; // 受容体→拡張 or 維持
-        } else {
-          ruleset[i] = (a === 3 || c === 3) ? 1 : 0; // 空白→受容体 or 維持
-        }
-      }
-    }
-  }
-}
+let history = [];
 
 function setup() {
   createCanvas(cols * cellSize, rows * cellSize);
   noStroke();
   grid = create2DArray(cols, rows);
   nextGrid = create2DArray(cols, rows);
-  setupRuleset();
+  fireTimers = create2DArray(cols, rows);
 
-  // 初期配置（中央に発火体）
   grid[floor(cols/2)][floor(rows/2)] = 3;
+  fireTimers[floor(cols/2)][floor(rows/2)] = FIRE_LIFESPAN;
+  history.push(encodeGrid(grid));
 }
 
 function draw() {
   background(0);
+  drawGrid();
+
+  if (isRunning) {
+    for (let i = 0; i < speed; i++) {
+      updateGrid();
+      generation++;
+      history.push(encodeGrid(grid));
+    }
+  }
+  drawUI();
+}
+
+function drawGrid() {
   for (let x = 0; x < cols; x++) {
     for (let y = 0; y < rows; y++) {
       drawCell(x, y, grid[x][y]);
     }
   }
-  updateGrid();
+}
+
+function drawUI() {
+  fill(255);
+  textSize(14);
+  textAlign(LEFT);
+  text("t = " + generation + (showAlpha ? " (alpha ON)" : " (alpha OFF)"), 10, height - 10);
+}
+
+function keyPressed() {
+  if (key === ' ') {
+    isRunning = !isRunning;
+  } else if (key === 'ArrowRight') {
+    speed = min(speed + 1, 10);
+  } else if (key === 'ArrowLeft') {
+    speed = max(speed - 1, 1);
+  } else if (key === 'r') {
+    if (generation > 0) {
+      generation--;
+      grid = decodeGrid(history[generation]);
+    }
+  } else if (key === 'a') {
+    showAlpha = !showAlpha;
+  }
 }
 
 function create2DArray(cols, rows) {
@@ -62,20 +85,41 @@ function create2DArray(cols, rows) {
 function updateGrid() {
   for (let x = 1; x < cols - 1; x++) {
     for (let y = 1; y < rows - 1; y++) {
-      let left = grid[x - 1][y];
       let me = grid[x][y];
-      let right = grid[x + 1][y];
 
-      // 自然発現
       if (me === 0 && random() < spontaneousRate) {
         nextGrid[x][y] = 1;
-      } else {
-        let index = left * 16 + me * 4 + right;
-        nextGrid[x][y] = ruleset[index];
+      } else if (me === 1) {
+        let directions = shuffle([[0,-1],[0,1],[1,0],[-1,0]]);
+        let [dx, dy] = directions[0];
+        let nx = x + dx;
+        let ny = y + dy;
+        if (grid[nx][ny] < 3) nextGrid[nx][ny] = min(grid[nx][ny] + 1, 3);
+        nextGrid[x][y] = 1;
+      } else if (me === 2) {
+        let pairs = shuffle([
+          [[0, -1], [1, 0]], // 上右
+          [[1, 0], [0, 1]],  // 右下
+          [[0, 1], [-1, 0]], // 下左
+          [[-1, 0], [0, -1]] // 左上
+        ]);
+        for (let [dx, dy] of pairs[0]) {
+          let nx = x + dx;
+          let ny = y + dy;
+          if (grid[nx][ny] < 3) nextGrid[nx][ny] = min(grid[nx][ny] + 1, 3);
+        }
+        nextGrid[x][y] = 2;
+      } else if (me === 3) {
+        fireTimers[x][y] = (fireTimers[x][y] || FIRE_LIFESPAN) - 1;
+        if (fireTimers[x][y] <= 0) {
+          nextGrid[x][y] = 0;
+          fireTimers[x][y] = 0;
+        } else {
+          nextGrid[x][y] = 3;
+        }
       }
     }
   }
-  // グリッドを更新
   let temp = grid;
   grid = nextGrid;
   nextGrid = temp;
@@ -83,10 +127,32 @@ function updateGrid() {
 
 function drawCell(x, y, state) {
   switch (state) {
-    case 0: fill(0); break;               // 空白: 黒
-    case 1: fill(50, 50, 200); break;     // 受容体: 青
-    case 2: fill(100, 200, 100); break;   // 拡張体: 緑
-    case 3: fill(255, 0, 0); break;       // 発火体: 赤
+    case 0: fill(0); break;
+    case 1: fill(50, 50, 200); break;
+    case 2: fill(100, 200, 100); break;
+    case 3:
+      if (showAlpha) {
+        let alpha = map(fireTimers[x][y] || FIRE_LIFESPAN, 0, FIRE_LIFESPAN, 0, 255);
+        fill(150, 150, 150, alpha);
+      } else {
+        fill(150);
+      }
+      break;
   }
   rect(x * cellSize, y * cellSize, cellSize, cellSize);
+}
+
+function encodeGrid(grid) {
+  return grid.flat().join("");
+}
+
+function decodeGrid(str) {
+  let arr = str.split("").map(Number);
+  let newGrid = create2DArray(cols, rows);
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      newGrid[i][j] = arr[i * rows + j];
+    }
+  }
+  return newGrid;
 }

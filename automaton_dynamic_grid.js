@@ -25,7 +25,7 @@ function setup() {
 
   grid[floor(cols/2)][floor(rows/2)] = 3;
   fireTimers[floor(cols/2)][floor(rows/2)] = FIRE_LIFESPAN;
-  history.push(encodeGrid(grid));
+  history[0] = createHistorySnapshot();
 }
 
 function draw() {
@@ -36,7 +36,8 @@ function draw() {
     for (let i = 0; i < speed; i++) {
       updateGrid();
       generation++;
-      history.push(encodeGrid(grid));
+      history[generation] = createHistorySnapshot();
+      history.length = generation + 1;
     }
   }
   drawUI();
@@ -67,7 +68,8 @@ function keyPressed() {
   } else if (key === 'r') {
     if (generation > 0) {
       generation--;
-      grid = decodeGrid(history[generation]);
+      restoreHistorySnapshot(history[generation]);
+      history.length = generation + 1;
     }
   } else if (key === 'a') {
     showAlpha = !showAlpha;
@@ -142,17 +144,36 @@ function drawCell(x, y, state) {
   rect(x * cellSize, y * cellSize, cellSize, cellSize);
 }
 
-function encodeGrid(grid) {
-  return grid.flat().join("");
-}
-
-function decodeGrid(str) {
-  let arr = str.split("").map(Number);
-  let newGrid = create2DArray(cols, rows);
-  for (let i = 0; i < cols; i++) {
-    for (let j = 0; j < rows; j++) {
-      newGrid[i][j] = arr[i * rows + j];
+function encodeByteGrid(source) {
+  const values = new Uint8Array(cols * rows);
+  let index = 0;
+  for (let x = 0; x < cols; x++) {
+    for (let y = 0; y < rows; y++) {
+      values[index++] = source[x][y] || 0;
     }
   }
-  return newGrid;
+  return values;
+}
+
+function decodeByteGrid(values) {
+  const restored = create2DArray(cols, rows);
+  let index = 0;
+  for (let x = 0; x < cols; x++) {
+    for (let y = 0; y < rows; y++) {
+      restored[x][y] = values[index++];
+    }
+  }
+  return restored;
+}
+
+function createHistorySnapshot() {
+  return {
+    grid: encodeByteGrid(grid),
+    fireTimers: encodeByteGrid(fireTimers)
+  };
+}
+
+function restoreHistorySnapshot(snapshot) {
+  grid = decodeByteGrid(snapshot.grid);
+  fireTimers = decodeByteGrid(snapshot.fireTimers);
 }

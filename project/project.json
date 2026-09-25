@@ -24,9 +24,17 @@
   "commands": {
     "setup": "",
     "dev": "",
-    "test": "",
+    "test": {
+      "exec": "node",
+      "args": ["--test", "project/tests/rewind-state.test.cjs"],
+      "cwd": "."
+    },
     "build": "",
-    "verify": "",
+    "verify": {
+      "exec": "node",
+      "args": ["--test", "project/tests/rewind-state.test.cjs"],
+      "cwd": "."
+    },
     "smoke": "",
     "deploy": ""
   },
@@ -38,6 +46,7 @@
   },
   "notes": [
     "This adoption adds the KiNoTch Base and Project Overlay without moving the existing browser experiment.",
-    "Automaton behavior and visualization remain Project-owned."
+    "Automaton behavior and visualization remain Project-owned.",
+    "Project-owned rewind-state verification uses Node built-ins and evaluates the existing browser script with a minimal VM harness from repository root."
   ]
 }

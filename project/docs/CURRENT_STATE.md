@@ -12,6 +12,8 @@ Last verified: 2026-09-26 — rewind-state maintenance audit
 - Rewind history snapshots preserve both grid state and fire-lifespan state
 - Rewinding discards the abandoned future timeline so generation and history position remain aligned when execution resumes
 - Complete snapshots use compact byte arrays for grid and fire timers
+- Rewind history is bounded by a configurable 5 MiB raw snapshot payload budget
+- History tracks the absolute first retained generation after oldest snapshots are trimmed
 - Project-owned rewind regression verification is registered for `knt test` / `knt verify`
 - Existing Domain files remain at their original root paths; no bulk move was performed
 
@@ -22,7 +24,7 @@ Last verified: 2026-09-26 — rewind-state maintenance audit
 ## Known constraints
 
 - Automaton rules, visualization, experiment data, and rewind-retention policy remain Project-owned.
-- History retention is still unbounded; the repository does not yet define an allowed rewind depth or memory budget. This is tracked separately in Issue #4 rather than silently capped by maintenance.
+- The default rewind-history raw snapshot budget is `5 * 1024 * 1024` bytes; JS object/array overhead is outside this approximate budget.
 - The Project regression check uses Node built-ins and a VM harness around the existing browser script; it verifies rewind state representation/restoration but is not a p5/browser rendering suite.
 - This repository still has no Project-owned setup/build/deploy command.
 - No PWA or Runtime Default is inferred from the static files alone.
@@ -30,7 +32,7 @@ Last verified: 2026-09-26 — rewind-state maintenance audit
 ## Next work
 
 1. Preserve the existing browser implementation and automaton rules as Project overrides.
-2. Decide a bounded rewind-history retention policy in Issue #4 before changing available rewind depth.
+2. Keep future rewind-retention policy changes behind the named budget/accounting helper boundary.
 3. Extend verification only for concrete reproduced behavior defects.
 
 ## Verification

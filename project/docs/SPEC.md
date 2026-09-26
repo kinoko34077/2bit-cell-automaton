@@ -13,10 +13,13 @@ cell automaton and its visualization.
 2. The existing `r` rewind control restores every mutable state component required to reproduce the selected generation, including fire lifespan state.
 3. After rewind, abandoned future snapshots are not reused; resuming execution produces a coherent new timeline aligned with the displayed generation number.
 4. Complete rewind snapshots use a compact representation that does not materially increase per-generation payload compared with the former encoded-grid history where avoidable.
-5. `knt test` and `knt verify` run the Project-owned rewind regression check.
-6. `knt doctor` validates the local Project Overlay and Base.
-7. `knt base-check` detects changes to common Base files.
-8. No Domain file is moved merely to satisfy the Base structure.
+5. Rewind history retains complete snapshots within an approximate raw payload budget of `5 * 1024 * 1024` bytes, trimming the oldest snapshots first.
+6. The first retained absolute generation is tracked, rewind stops at that boundary, and abandoned future history is truncated after rewind.
+7. Budget, byte accounting, generation indexing, record/lookup, and trimming policy are isolated behind named constants/functions.
+8. `knt test` and `knt verify` run the Project-owned rewind regression check.
+9. `knt doctor` validates the local Project Overlay and Base.
+10. `knt base-check` detects changes to common Base files.
+11. No Domain file is moved merely to satisfy the Base structure.
 
 ## Ownership boundary
 
@@ -41,7 +44,6 @@ The Base does not impose a framework, PWA structure, data model, browser storage
 format, or history-retention depth on this Project. Existing implementation
 boundaries remain authoritative.
 
-The maximum retained rewind depth / memory budget is currently unspecified and
-must be decided separately before history is capped. Issue #4 tracks that policy
-decision; maintenance of rewind correctness must not silently reduce available
-history.
+Rewind depth is derived from the configurable raw snapshot budget rather than a fixed
+generation count. The current default budget is 5 MiB; changing that policy must not
+require rewriting the rewind event handler or snapshot representation.

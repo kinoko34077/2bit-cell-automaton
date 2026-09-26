@@ -17,9 +17,9 @@ cell automaton and its visualization.
 6. The first retained absolute generation is tracked, rewind stops at that boundary, and abandoned future history is truncated after rewind.
 7. Budget, byte accounting, generation indexing, record/lookup, and trimming policy are isolated behind named constants/functions.
 8. `knt test` and `knt verify` run the Project-owned rewind regression check.
-6. `knt doctor` validates the local Project Overlay and Base.
-7. `knt base-check` detects changes to common Base files.
-8. No Domain file is moved merely to satisfy the Base structure.
+9. `knt doctor` validates the local Project Overlay and Base.
+10. `knt base-check` detects changes to common Base files.
+11. No Domain file is moved merely to satisfy the Base structure.
 
 ## Ownership boundary
 

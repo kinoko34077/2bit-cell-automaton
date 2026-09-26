@@ -26,13 +26,13 @@
     "dev": "",
     "test": {
       "exec": "node",
-      "args": ["--test", "project/tests/rewind-state.test.cjs", "project/tests/transition-buffer.test.cjs"],
+      "args": ["--test", "project/tests/rewind-state.test.cjs", "project/tests/transition-buffer.test.cjs", "project/tests/interaction-controls.test.cjs"],
       "cwd": "."
     },
     "build": "",
     "verify": {
       "exec": "node",
-      "args": ["--test", "project/tests/rewind-state.test.cjs", "project/tests/transition-buffer.test.cjs"],
+      "args": ["--test", "project/tests/rewind-state.test.cjs", "project/tests/transition-buffer.test.cjs", "project/tests/interaction-controls.test.cjs"],
       "cwd": "."
     },
     "smoke": "",
@@ -47,6 +47,6 @@
   "notes": [
     "This adoption adds the KiNoTch Base and Project Overlay without moving the existing browser experiment.",
     "Automaton behavior and visualization remain Project-owned.",
-    "Project-owned rewind and transition-buffer verification use Node built-ins and evaluate the existing browser script with minimal VM harnesses from repository root."
+    "Project-owned rewind, transition-buffer, and interaction-control verification use Node built-ins and evaluate the existing browser script with minimal VM harnesses from repository root."
   ]
 }

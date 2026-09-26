@@ -10,16 +10,22 @@ const cellSize = 5;
 const spontaneousRate = 0.0001;
 let generation = 0;
 let isRunning = true;
-let speed = 0.2;
+const MIN_GENERATIONS_PER_FRAME = 1;
+const MAX_GENERATIONS_PER_FRAME = 10;
+let generationsPerFrame = 1;
 const FIRE_LIFESPAN = 75;
 let showAlpha = false; // 発火体の透明度表示切り替え
 
 const HISTORY_MEMORY_BUDGET_BYTES = 5 * 1024 * 1024;
 let history = [];
 let historyStartGeneration = 0;
+let lastControlSurfaceSignature = '';
 
 function setup() {
-  createCanvas(cols * cellSize, rows * cellSize);
+  const canvas = createCanvas(cols * cellSize, rows * cellSize);
+  if (canvas && typeof canvas.parent === 'function' && typeof document !== 'undefined' && document.getElementById('canvas-container')) {
+    canvas.parent('canvas-container');
+  }
   noStroke();
   grid = create2DArray(cols, rows);
   nextGrid = create2DArray(cols, rows);
@@ -30,6 +36,8 @@ function setup() {
   history = [];
   historyStartGeneration = generation;
   recordHistorySnapshot(generation, createHistorySnapshot());
+  setupControlSurface();
+  updateControlSurface(true);
 }
 
 function draw() {
@@ -37,13 +45,14 @@ function draw() {
   drawGrid();
 
   if (isRunning) {
-    for (let i = 0; i < speed; i++) {
+    for (let i = 0; i < generationsPerFrame; i++) {
       updateGrid();
       generation++;
       recordHistorySnapshot(generation, createHistorySnapshot());
     }
   }
   drawUI();
+  updateControlSurface();
 }
 
 function drawGrid() {
@@ -58,17 +67,30 @@ function drawUI() {
   fill(255);
   textSize(14);
   textAlign(LEFT);
-  text("t = " + generation + (showAlpha ? " (alpha ON)" : " (alpha OFF)"), 10, height - 10);
+  const runLabel = isRunning ? 'RUN' : 'PAUSE';
+  text(
+    "t = " + generation + " | " + runLabel + " | " + generationsPerFrame + " gen/frame" +
+      (showAlpha ? " | alpha ON" : " | alpha OFF"),
+    10,
+    height - 10
+  );
 }
 
-function keyPressed() {
-  if (key === ' ') {
+function executeControlCommand(command) {
+  let changed = false;
+
+  if (command === 'toggle-run') {
     isRunning = !isRunning;
-  } else if (key === 'ArrowRight') {
-    speed = min(speed + 1, 10);
-  } else if (key === 'ArrowLeft') {
-    speed = max(speed - 1, 1);
-  } else if (key === 'r') {
+    changed = true;
+  } else if (command === 'faster') {
+    const next = min(generationsPerFrame + 1, MAX_GENERATIONS_PER_FRAME);
+    changed = next !== generationsPerFrame;
+    generationsPerFrame = next;
+  } else if (command === 'slower') {
+    const next = max(generationsPerFrame - 1, MIN_GENERATIONS_PER_FRAME);
+    changed = next !== generationsPerFrame;
+    generationsPerFrame = next;
+  } else if (command === 'rewind') {
     if (generation > historyStartGeneration) {
       const targetGeneration = generation - 1;
       const snapshot = getHistorySnapshot(targetGeneration);
@@ -76,11 +98,82 @@ function keyPressed() {
         generation = targetGeneration;
         restoreHistorySnapshot(snapshot);
         truncateHistoryAfterGeneration(generation);
+        isRunning = false;
+        changed = true;
       }
     }
-  } else if (key === 'a') {
+  } else if (command === 'toggle-alpha') {
     showAlpha = !showAlpha;
+    changed = true;
   }
+
+  if (changed) updateControlSurface(true);
+  return changed;
+}
+
+function keyPressed() {
+  let command = null;
+  if (key === ' ') {
+    command = 'toggle-run';
+  } else if (key === 'ArrowRight') {
+    command = 'faster';
+  } else if (key === 'ArrowLeft') {
+    command = 'slower';
+  } else if (key === 'r' || key === 'R') {
+    command = 'rewind';
+  } else if (key === 'a' || key === 'A') {
+    command = 'toggle-alpha';
+  }
+
+  if (!command) return undefined;
+  executeControlCommand(command);
+  return false;
+}
+
+function setupControlSurface() {
+  if (typeof document === 'undefined') return;
+  const controls = document.getElementById('automaton-controls');
+  if (!controls) return;
+
+  controls.querySelectorAll('[data-command]').forEach((button) => {
+    button.addEventListener('click', () => executeControlCommand(button.dataset.command));
+  });
+}
+
+function getControlSurfaceState() {
+  return {
+    generation,
+    isRunning,
+    generationsPerFrame,
+    canRewind: generation > historyStartGeneration,
+    showAlpha,
+  };
+}
+
+function updateControlSurface(force = false) {
+  if (typeof document === 'undefined') return;
+  const status = document.getElementById('automaton-status');
+  const runButton = document.querySelector('[data-command="toggle-run"]');
+  const rewindButton = document.querySelector('[data-command="rewind"]');
+  const alphaButton = document.querySelector('[data-command="toggle-alpha"]');
+  if (!status) return;
+
+  const state = getControlSurfaceState();
+  const signature = JSON.stringify(state);
+  if (!force && signature === lastControlSurfaceSignature) return;
+  lastControlSurfaceSignature = signature;
+
+  status.textContent =
+    `世代 ${state.generation} ・ ${state.isRunning ? '実行中' : '一時停止'} ・ ` +
+    `${state.generationsPerFrame} 世代/frame ・ 巻戻し ${state.canRewind ? '可' : '不可'} ・ ` +
+    `Alpha ${state.showAlpha ? 'ON' : 'OFF'}`;
+
+  if (runButton) {
+    runButton.textContent = state.isRunning ? '一時停止' : '実行';
+    runButton.setAttribute('aria-pressed', state.isRunning ? 'true' : 'false');
+  }
+  if (rewindButton) rewindButton.disabled = !state.canRewind;
+  if (alphaButton) alphaButton.setAttribute('aria-pressed', state.showAlpha ? 'true' : 'false');
 }
 
 function create2DArray(cols, rows) {
@@ -176,7 +269,6 @@ function decodeByteGrid(values) {
   }
   return restored;
 }
-
 
 function getHistorySnapshotByteSize(snapshot) {
   if (!snapshot) return 0;

@@ -14,7 +14,9 @@ let speed = 0.2;
 const FIRE_LIFESPAN = 75;
 let showAlpha = false; // 発火体の透明度表示切り替え
 
+const HISTORY_MEMORY_BUDGET_BYTES = 5 * 1024 * 1024;
 let history = [];
+let historyStartGeneration = 0;
 
 function setup() {
   createCanvas(cols * cellSize, rows * cellSize);
@@ -25,7 +27,9 @@ function setup() {
 
   grid[floor(cols/2)][floor(rows/2)] = 3;
   fireTimers[floor(cols/2)][floor(rows/2)] = FIRE_LIFESPAN;
-  history[0] = createHistorySnapshot();
+  history = [];
+  historyStartGeneration = generation;
+  recordHistorySnapshot(generation, createHistorySnapshot());
 }
 
 function draw() {
@@ -36,8 +40,7 @@ function draw() {
     for (let i = 0; i < speed; i++) {
       updateGrid();
       generation++;
-      history[generation] = createHistorySnapshot();
-      history.length = generation + 1;
+      recordHistorySnapshot(generation, createHistorySnapshot());
     }
   }
   drawUI();
@@ -66,10 +69,14 @@ function keyPressed() {
   } else if (key === 'ArrowLeft') {
     speed = max(speed - 1, 1);
   } else if (key === 'r') {
-    if (generation > 0) {
-      generation--;
-      restoreHistorySnapshot(history[generation]);
-      history.length = generation + 1;
+    if (generation > historyStartGeneration) {
+      const targetGeneration = generation - 1;
+      const snapshot = getHistorySnapshot(targetGeneration);
+      if (snapshot) {
+        generation = targetGeneration;
+        restoreHistorySnapshot(snapshot);
+        truncateHistoryAfterGeneration(generation);
+      }
     }
   } else if (key === 'a') {
     showAlpha = !showAlpha;
@@ -168,6 +175,54 @@ function decodeByteGrid(values) {
     }
   }
   return restored;
+}
+
+
+function getHistorySnapshotByteSize(snapshot) {
+  if (!snapshot) return 0;
+  return (snapshot.grid?.byteLength || 0) + (snapshot.fireTimers?.byteLength || 0);
+}
+
+function getHistoryTotalByteSize() {
+  return history.reduce((total, snapshot) => total + getHistorySnapshotByteSize(snapshot), 0);
+}
+
+function historyIndexForGeneration(targetGeneration) {
+  return targetGeneration - historyStartGeneration;
+}
+
+function getHistorySnapshot(targetGeneration) {
+  const index = historyIndexForGeneration(targetGeneration);
+  return index >= 0 && index < history.length ? history[index] : null;
+}
+
+function trimHistoryToBudget(budgetBytes = HISTORY_MEMORY_BUDGET_BYTES) {
+  let totalBytes = getHistoryTotalByteSize();
+  while (history.length > 1 && totalBytes > budgetBytes) {
+    totalBytes -= getHistorySnapshotByteSize(history.shift());
+    historyStartGeneration++;
+  }
+}
+
+function truncateHistoryAfterGeneration(targetGeneration) {
+  const keepLength = historyIndexForGeneration(targetGeneration) + 1;
+  if (keepLength >= 0 && keepLength < history.length) {
+    history.length = keepLength;
+  }
+}
+
+function recordHistorySnapshot(snapshotGeneration, snapshot) {
+  if (history.length === 0) {
+    historyStartGeneration = snapshotGeneration;
+    history.push(snapshot);
+  } else {
+    const index = historyIndexForGeneration(snapshotGeneration);
+    if (index < 0) return;
+    if (index < history.length) history.length = index;
+    history[index] = snapshot;
+    history.length = index + 1;
+  }
+  trimHistoryToBudget();
 }
 
 function createHistorySnapshot() {

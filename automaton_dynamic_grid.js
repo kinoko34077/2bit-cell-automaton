@@ -85,6 +85,10 @@ function create2DArray(cols, rows) {
 }
 
 function updateGrid() {
+  for (let x = 0; x < cols; x++) {
+    nextGrid[x].fill(0);
+  }
+
   for (let x = 1; x < cols - 1; x++) {
     for (let y = 1; y < rows - 1; y++) {
       let me = grid[x][y];

@@ -1,10 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>2bit Cell Automaton</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #111; color: #eee; }
+    .app-shell { width: min(100%, 1000px); margin: 0 auto; padding: 12px; }
+    #automaton-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+    #automaton-controls button { min-height: 40px; padding: 8px 12px; border: 1px solid #666; border-radius: 6px; background: #222; color: #fff; cursor: pointer; }
+    #automaton-controls button:disabled { opacity: 0.45; cursor: not-allowed; }
+    #automaton-status { flex: 1 1 100%; min-height: 1.4em; color: #ccc; font-size: 0.9rem; }
+    .shortcut-help { margin: 0 0 10px; color: #aaa; font-size: 0.82rem; }
+    #canvas-container { width: 100%; overflow: hidden; }
+    #canvas-container canvas { display: block; max-width: 100%; height: auto !important; }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.min.js"></script>
   <script src="automaton_dynamic_grid.js"></script>
-  <title>Automaton</title>
 </head>
-<body></body>
+<body>
+  <main class="app-shell">
+    <section id="automaton-controls" aria-label="オートマトン操作">
+      <button type="button" data-command="toggle-run" aria-pressed="true">一時停止</button>
+      <button type="button" data-command="slower" aria-label="速度を下げる">速度 -</button>
+      <button type="button" data-command="faster" aria-label="速度を上げる">速度 +</button>
+      <button type="button" data-command="rewind" disabled>1世代戻す</button>
+      <button type="button" data-command="toggle-alpha" aria-pressed="false">Alpha</button>
+      <div id="automaton-status" role="status" aria-live="polite">初期化中…</div>
+    </section>
+    <p class="shortcut-help">キーボード: Space 実行/停止・←/→ 速度・R 巻戻し・A Alpha</p>
+    <div id="canvas-container" aria-label="セルオートマトン表示"></div>
+  </main>
+</body>
 </html>

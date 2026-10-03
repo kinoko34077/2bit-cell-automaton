@@ -125,6 +125,12 @@ test('global shortcuts yield to focused interactive and editable controls', () =
     assert.equal(automaton.running(), true);
   }
 
+  const focusedButton = { tagName: 'BUTTON' };
+  assert.equal(automaton.press('ArrowRight', { target: focusedButton }), undefined);
+  assert.equal(automaton.speed(), 1);
+  assert.equal(automaton.press('r', { target: focusedButton }), undefined);
+  assert.equal(automaton.press('a', { target: focusedButton }), undefined);
+
   assert.equal(automaton.press(' ', { target: { tagName: 'CANVAS' } }), false);
   assert.equal(automaton.running(), false);
 });

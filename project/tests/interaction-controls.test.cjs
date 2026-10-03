@@ -56,9 +56,9 @@ function loadAutomaton() {
         isRunning = true;
       },
       generation() { return generation; },
-      press(value) {
+      press(value, event = undefined) {
         key = value;
-        return keyPressed();
+        return keyPressed(event);
       },
     };
   `, context, {filename: 'automaton_dynamic_grid.js'});
@@ -105,6 +105,28 @@ test('keyboard shortcuts use the same command boundary and suppress browser defa
   assert.equal(automaton.speed(), 1);
   assert.equal(automaton.press('a'), false);
   assert.notEqual(automaton.press('x'), false);
+});
+
+test('global shortcuts yield to focused interactive and editable controls', () => {
+  const automaton = loadAutomaton();
+  automaton.reset();
+
+  const interactiveTargets = [
+    { tagName: 'BUTTON' },
+    { tagName: 'INPUT' },
+    { tagName: 'SELECT' },
+    { tagName: 'TEXTAREA' },
+    { tagName: 'A' },
+    { tagName: 'DIV', isContentEditable: true },
+  ];
+
+  for (const target of interactiveTargets) {
+    assert.equal(automaton.press(' ', { target }), undefined);
+    assert.equal(automaton.running(), true);
+  }
+
+  assert.equal(automaton.press(' ', { target: { tagName: 'CANVAS' } }), false);
+  assert.equal(automaton.running(), false);
 });
 
 test('visible controls and responsive canvas presentation are available without keyboard discovery', () => {

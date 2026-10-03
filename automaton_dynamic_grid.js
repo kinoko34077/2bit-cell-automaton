@@ -111,7 +111,20 @@ function executeControlCommand(command) {
   return changed;
 }
 
-function keyPressed() {
+function isInteractiveKeyboardTarget(target) {
+  if (!target) return false;
+  if (target.isContentEditable) return true;
+  const tagName = typeof target.tagName === 'string' ? target.tagName.toLowerCase() : '';
+  return ['button', 'input', 'select', 'textarea', 'a'].includes(tagName);
+}
+
+function keyPressed(event) {
+  const target =
+    event && event.target
+      ? event.target
+      : (typeof document !== 'undefined' ? document.activeElement : null);
+  if (isInteractiveKeyboardTarget(target)) return undefined;
+
   let command = null;
   if (key === ' ') {
     command = 'toggle-run';

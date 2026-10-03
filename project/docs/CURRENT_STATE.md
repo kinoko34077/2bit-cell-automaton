@@ -2,7 +2,7 @@
 
 Base version: `0.3.8`
 
-Last verified: 2026-09-27 — interaction-control maintenance
+Last verified: 2026-10-03 — focus-aware keyboard interaction repair
 
 ## Implemented
 
@@ -17,7 +17,7 @@ Last verified: 2026-09-27 — interaction-control maintenance
 - History tracks the absolute first retained generation after oldest snapshots are trimmed
 - Runtime speed is an explicit integer `1..10` generations/frame model; default `1` preserves the former effective one-update-per-frame behavior
 - Keyboard and visible pointer/touch controls share one named command boundary for run/pause, speed, rewind and Alpha display
-- Consumed keyboard shortcuts suppress browser default scrolling
+- Consumed keyboard shortcuts suppress browser default scrolling only when the global shortcut is actually handled; focused interactive/editable controls retain native keyboard ownership
 - The control surface exposes generation, run/pause, effective speed, rewind availability and Alpha state
 - The existing logical 960×640 canvas is responsively scaled for narrow viewports without changing the 192×128 automaton grid
 - Project-owned rewind, transition-buffer and interaction-control regressions are registered for `knt test` / `knt verify`

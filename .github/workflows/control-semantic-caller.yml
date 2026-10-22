@@ -15,7 +15,7 @@ jobs:
     if: >-
       github.repository == 'kinoko34077/2bit-cell-automaton' &&
       github.event.pull_request.merged == true
-    uses: kinoko34077/devflow/.github/workflows/control-semantic-reusable.yml@891db0cc774d352ec5067ad86cb187534b1409c9
+    uses: kinoko34077/devflow/.github/workflows/control-semantic-reusable.yml@48579b5d8dc655335aa2c5a22e65ef9851992e43
     with:
       control_issue: 6
-      source_sha: 891db0cc774d352ec5067ad86cb187534b1409c9
+      source_sha: 48579b5d8dc655335aa2c5a22e65ef9851992e43

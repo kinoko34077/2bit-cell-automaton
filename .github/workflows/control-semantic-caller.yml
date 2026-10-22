@@ -1,0 +1,21 @@
+name: Public Control semantic review pilot
+
+# One accepted Public repo only. No source-code execution from PR/fork.
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  read-only-control:
+    if: >-
+      github.repository == 'kinoko34077/2bit-cell-automaton' &&
+      github.event.pull_request.merged == true
+    uses: kinoko34077/devflow/.github/workflows/control-semantic-reusable.yml@891db0cc774d352ec5067ad86cb187534b1409c9
+    with:
+      control_issue: 6
+      source_sha: 891db0cc774d352ec5067ad86cb187534b1409c9

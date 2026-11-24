@@ -42,7 +42,6 @@ function setup() {
 
 function draw() {
   background(0);
-  drawGrid();
 
   if (isRunning) {
     for (let i = 0; i < generationsPerFrame; i++) {
@@ -51,6 +50,7 @@ function draw() {
       recordHistorySnapshot(generation, createHistorySnapshot());
     }
   }
+  drawGrid();
   drawUI();
   updateControlSurface();
 }
